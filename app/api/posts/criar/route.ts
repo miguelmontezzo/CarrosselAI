@@ -69,7 +69,10 @@ export async function POST(req: NextRequest) {
 
     // Dispara o processamento aguardando a finalização para que o Vercel Serverless não mate a request
     // Usamos maxDuration = 60 na rota para garantir tempo hábil no Vercel Free Hobby.
-    const processResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5001'}/api/processar`, {
+    const baseUrl = req.nextUrl.origin || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5001';
+
+    console.log(`[criar] Disparando fetch para: ${baseUrl}/api/processar...`);
+    const processResponse = await fetch(`${baseUrl}/api/processar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ postId: post.id, image_model: image_model, image_resolution: image_resolution }),
