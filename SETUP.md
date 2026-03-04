@@ -66,23 +66,7 @@ npm run dev
 
 Acesse: http://localhost:3000
 
----
 
-## 5. Deploy (Vercel)
-
-```bash
-# Instale a CLI da Vercel
-npm i -g vercel
-
-# Deploy
-vercel
-
-# Configure as variáveis de ambiente na Vercel
-vercel env add OPENAI_API_KEY
-# ... repita para todas as variáveis
-```
-
-**Importante:** O `NEXT_PUBLIC_APP_URL` deve ser a URL de produção para o QStash funcionar corretamente.
 
 ---
 

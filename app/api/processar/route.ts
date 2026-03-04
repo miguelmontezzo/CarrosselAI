@@ -9,9 +9,9 @@ import { gerarCarrossel } from '@/lib/openai'
 import { gerarTodasImagens, salvarImagemNoStorage } from '@/lib/nanobana'
 import type { ProcessarPayload, SlideGerado, StyleJson, CarrosselGerado } from '@/types'
 
-// Aumenta o limite de tempo de execução no Vercel para 60 segundos (limite hobby)
-// Se for plano Pro na Vercel, pode colocar até 300 segundos
-export const maxDuration = 60;
+// Aumenta o limite de tempo de execução no Vercel (até 300 segundos no plano Pro)
+// Configurado para 4 minutos (240 segundos) conforme solicitado
+export const maxDuration = 240;
 
 // Utilitário para atualizar status no banco
 async function atualizarStatus(

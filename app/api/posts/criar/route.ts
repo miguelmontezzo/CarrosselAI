@@ -6,8 +6,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import type { CriarPostPayload } from '@/types'
 
-// Aumenta o limite de tempo de execução pro Vercel free(60s) / pro(300s)
-export const maxDuration = 60;
+// Aumenta o limite de tempo de execução pro Vercel (até 300s no plano Pro)
+// O usuário solicitou 4 minutos (240 segundos)
+export const maxDuration = 240;
 
 export async function POST(req: NextRequest) {
   try {
