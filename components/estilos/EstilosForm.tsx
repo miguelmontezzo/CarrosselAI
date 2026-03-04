@@ -6,6 +6,7 @@
 import { useState, useRef } from 'react'
 import { Upload, Loader2, CheckCircle, Palette, X } from 'lucide-react'
 import { toast } from '@/components/ui/use-toast'
+import { createClient } from '@/lib/supabase/client'
 import type { StyleModel } from '@/types'
 import { cn } from '@/lib/utils'
 
@@ -13,12 +14,22 @@ interface EstilosFormProps {
   estilosExistentes: StyleModel[]
 }
 
-export function EstilosForm({ estilosExistentes }: EstilosFormProps) {
+export function EstilosForm({ estilosExistentes: initialEstilos }: EstilosFormProps) {
+  const [estilos, setEstilos] = useState<StyleModel[]>(initialEstilos)
   const [nome, setNome] = useState('')
   const [arquivos, setArquivos] = useState<File[]>([])
   const [carregando, setCarregando] = useState(false)
   const [analise, setAnalise] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  async function recarregarEstilos() {
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('style_models')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (data) setEstilos(data as StyleModel[])
+  }
 
   function handleArquivos(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
@@ -70,6 +81,9 @@ export function EstilosForm({ estilosExistentes }: EstilosFormProps) {
 
       setNome('')
       setArquivos([])
+
+      // Recarrega a lista de estilos automaticamente após salvar
+      await recarregarEstilos()
     } catch {
       toast({ title: 'Erro ao analisar estilo', variant: 'destructive' })
     } finally {
@@ -80,11 +94,11 @@ export function EstilosForm({ estilosExistentes }: EstilosFormProps) {
   return (
     <div className="space-y-6">
       {/* Estilos existentes */}
-      {estilosExistentes.length > 0 && (
+      {estilos.length > 0 && (
         <div className="card-dark space-y-3">
           <h3 className="text-sm font-semibold">Estilos Salvos</h3>
           <div className="space-y-2">
-            {estilosExistentes.map((estilo) => (
+            {estilos.map((estilo) => (
               <div
                 key={estilo.id}
                 className={cn(
