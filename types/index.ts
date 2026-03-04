@@ -59,12 +59,33 @@ export interface StyleModel {
 }
 
 // Estrutura do JSON de estilo extraído via GPT-4 Vision
+// Compatível com prompts antigos (campos legados) e novos (campos expandidos)
 export interface StyleJson {
+  // Campos legados (compatibilidade com estilos antigos)
   layout: string
   tipografia: {
     titulo: string
     corpo: string
     destaque: string
+    // Novos campos expandidos
+    headline?: {
+      estilo?: string
+      tamanho_relativo?: string
+      cor?: string
+      cor_secundaria?: string
+      caixa?: string
+      alinhamento?: string
+      familia_aproximada?: string
+      espacamento_letras?: string
+      line_height?: string
+    }
+    body?: {
+      estilo?: string
+      tamanho_relativo?: string
+      cor?: string
+      alinhamento?: string
+      familia_aproximada?: string
+    }
   }
   cores: {
     fundo: string
@@ -80,8 +101,67 @@ export interface StyleJson {
     handle: string
   }
   descricao_geral: string
-  // Prompt Gemini-ready gerado na análise para uso direto na geração de imagens
   image_style_prompt: string
+
+  // Novos campos do prompt expandido
+  identidade_visual?: {
+    descricao_geral?: string
+    tom_visual?: string
+    sensacao_emocional?: string
+    referencias_esteticas?: string
+  }
+  background?: {
+    tipo?: string
+    descricao_detalhada?: string
+    paleta_dominante?: string[]
+    iluminacao?: string
+    temperatura_cor?: string
+    profundidade_campo?: string
+    camera_style?: string
+    grain_texture?: string
+    composicao?: string
+  }
+  layout_estrutura?: {
+    divisao_imagem?: string
+    tem_gradiente?: boolean
+    gradiente_descricao?: string
+    posicao_titulo?: string
+    posicao_body?: string
+    posicao_handle?: string
+    posicao_cta?: string
+    tem_card?: boolean
+    card?: {
+      cor_fundo?: string
+      opacidade?: string
+      border_radius?: string
+      sombra?: string
+      posicao_no_slide?: string
+      padding_interno?: string
+    }
+  }
+  elementos_graficos?: {
+    tem_bullets?: boolean
+    bullets_estilo?: string
+    palavras_destacadas?: boolean
+    destaque_estilo?: string
+    cores_destaque_bullets?: Array<{ nome: string; hex: string }>
+    tem_emoji?: boolean
+    emoji_posicao?: string
+    tem_borda_card?: boolean
+    outros_elementos?: string
+  }
+  padroes_por_tipo_slide?: {
+    slide_gancho?: { descricao?: string; elementos_obrigatorios?: string[] }
+    slide_lista?: { descricao?: string; elementos_obrigatorios?: string[] }
+    slide_comparacao?: { descricao?: string; elementos_obrigatorios?: string[] }
+    slide_cta?: { descricao?: string; elementos_obrigatorios?: string[] }
+  }
+  prompt_base_imagem?: string
+  regras_replicacao?: string[]
+  tipografia_resumida?: {
+    titulo?: string
+    corpo?: string
+  }
 }
 
 // Estrutura de um slide gerado pelo GPT-4o
