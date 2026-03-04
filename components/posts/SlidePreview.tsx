@@ -6,15 +6,16 @@
 import Image from 'next/image'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
-import type { Slide } from '@/types'
+import type { Slide, StyleJson } from '@/types'
 
 interface SlidePreviewProps {
   slide: Slide
   isAtivo?: boolean       // Slide selecionado/em foco
   onSelect?: () => void
+  style?: StyleJson | null
 }
 
-export function SlidePreview({ slide, isAtivo, onSelect }: SlidePreviewProps) {
+export function SlidePreview({ slide, isAtivo, onSelect, style }: SlidePreviewProps) {
   const [imagemCarregada, setImagemCarregada] = useState(false)
 
   return (
@@ -57,12 +58,23 @@ export function SlidePreview({ slide, isAtivo, onSelect }: SlidePreviewProps) {
         <div className="absolute inset-0 skeleton" />
       )}
 
-      {/* Overlay com texto (sempre visível para dar context) */}
+      {/* Overlay com texto — cores do estilo selecionado quando disponível */}
       {slide.headline && (
-        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
+        <div
+          className="absolute bottom-0 left-0 right-0 p-3"
+          style={{
+            background: style?.cores.fundo
+              ? `linear-gradient(to top, ${style.cores.fundo}ee, ${style.cores.fundo}88, transparent)`
+              : 'linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.5), transparent)',
+          }}
+        >
           <p
-            className="text-white text-xs font-bold leading-tight titulo-bebas"
-            style={{ fontSize: '11px', letterSpacing: '0.02em' }}
+            className="text-xs font-bold leading-tight titulo-bebas"
+            style={{
+              fontSize: '11px',
+              letterSpacing: '0.02em',
+              color: style?.cores.texto_principal ?? '#ffffff',
+            }}
           >
             {slide.headline}
           </p>

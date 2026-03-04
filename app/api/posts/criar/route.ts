@@ -10,7 +10,7 @@ import type { CriarPostPayload } from '@/types'
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as CriarPostPayload
-    const { link, tema, num_slides = 7, handle = '@miguelito.ai' } = body
+    const { link, tema, num_slides = 7, handle = '@miguelito.ai', style_model_id, image_model, image_resolution } = body
 
     // Validação: precisa de link OU tema
     if (!link && !tema) {
@@ -30,12 +30,18 @@ export async function POST(req: NextRequest) {
 
     const supabase = createServiceClient()
 
-    // Busca o style_model ativo para usar na geração
-    const { data: styleModel } = await supabase
-      .from('style_models')
-      .select('id')
-      .eq('ativo', true)
-      .single()
+    // Se o usuário não enviou o style_model_id, busca o primeiro ativo
+    let finalStyleModelId = style_model_id
+    if (!finalStyleModelId) {
+      const { data: styleModel } = await supabase
+        .from('style_models')
+        .select('id')
+        .eq('ativo', true)
+        .limit(1)
+        .single()
+
+      finalStyleModelId = styleModel?.id ?? null
+    }
 
     // Cria o post no banco com status inicial "gerando"
     const { data: post, error: insertError } = await supabase
@@ -46,7 +52,7 @@ export async function POST(req: NextRequest) {
         handle,
         num_slides,
         status: 'gerando',
-        style_model_id: styleModel?.id ?? null,
+        style_model_id: finalStyleModelId,
       })
       .select()
       .single()
@@ -61,7 +67,7 @@ export async function POST(req: NextRequest) {
 
     // Dispara o processamento assíncrono via QStash
     // QStash garante entrega e retry automático
-    await dispararProcessamento(post.id)
+    await dispararProcessamento(post.id, image_model, image_resolution)
 
     return NextResponse.json({ postId: post.id }, { status: 201 })
   } catch (erro) {

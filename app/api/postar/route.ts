@@ -66,13 +66,19 @@ export async function POST(req: NextRequest) {
       .update({ status: 'postando' })
       .eq('id', postId)
 
-    // ─── Publica no Instagram via Graph API ─────────────────────
-    console.log(`[postar] Publicando post ${postId} no Instagram...`)
+    // ─── Publica no Instagram via Graph API (se credenciais configuradas) ──
+    const instagramConfigurado =
+      !!process.env.INSTAGRAM_ACCESS_TOKEN && !!process.env.INSTAGRAM_USER_ID
 
-    const instagramPostId = await publicarCarrosselInstagram(
-      urlsImagens,
-      post.legenda
-    )
+    let instagramPostId: string | null = null
+
+    if (instagramConfigurado) {
+      console.log(`[postar] Publicando post ${postId} no Instagram...`)
+      instagramPostId = await publicarCarrosselInstagram(urlsImagens, post.legenda)
+      console.log(`[postar] Post ${postId} publicado! Instagram ID: ${instagramPostId}`)
+    } else {
+      console.log(`[postar] Instagram não configurado — marcando como aprovado sem publicar.`)
+    }
 
     // ─── Registra sucesso no banco ──────────────────────────────
     await supabase
@@ -83,10 +89,6 @@ export async function POST(req: NextRequest) {
         posted_at: new Date().toISOString(),
       })
       .eq('id', postId)
-
-    console.log(
-      `[postar] Post ${postId} publicado! Instagram ID: ${instagramPostId}`
-    )
 
     return NextResponse.json({
       success: true,

@@ -5,21 +5,41 @@
 // ═══════════════════════════════════════════════════════════════
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Link, FileText, Loader2, Sparkles, Hash } from 'lucide-react'
+import { Link, FileText, Loader2, Sparkles, Hash, Palette, Cpu, Image } from 'lucide-react'
 import { toast } from '@/components/ui/use-toast'
 import { cn } from '@/lib/utils'
+import type { ImageModel, ImageResolution } from '@/types'
 
 type ModoInput = 'link' | 'tema'
 
 const OPCOES_SLIDES = [3, 5, 7, 9] as const
 
-export function NovoPostForm() {
+const OPCOES_MODELO: { value: ImageModel; label: string; desc: string }[] = [
+  { value: 'nanobana-2', label: 'Nanobana 2', desc: 'Rápido · Flash' },
+  { value: 'nanobana-pro', label: 'Nanobana Pro', desc: 'Premium · Pro' },
+]
+
+const OPCOES_RESOLUCAO: { value: ImageResolution; label: string }[] = [
+  { value: '1k', label: '1K' },
+  { value: '2k', label: '2K' },
+]
+
+interface NovoPostFormProps {
+  styleModels: { id: string; nome: string; ativo: boolean }[]
+}
+
+export function NovoPostForm({ styleModels }: NovoPostFormProps) {
   const router = useRouter()
   const [modo, setModo] = useState<ModoInput>('link')
   const [link, setLink] = useState('')
   const [tema, setTema] = useState('')
   const [numSlides, setNumSlides] = useState(7)
   const [handle, setHandle] = useState('@miguelito.ai')
+  const [styleModelId, setStyleModelId] = useState(
+    styleModels.find((m) => m.ativo)?.id || styleModels[0]?.id || ''
+  )
+  const [imageModel, setImageModel] = useState<ImageModel>('nanobana-2')
+  const [imageResolution, setImageResolution] = useState<ImageResolution>('2k')
   const [carregando, setCarregando] = useState(false)
   const [etapa, setEtapa] = useState('')
 
@@ -48,6 +68,9 @@ export function NovoPostForm() {
           tema: modo === 'tema' ? tema : undefined,
           num_slides: numSlides,
           handle,
+          style_model_id: styleModelId || undefined,
+          image_model: imageModel,
+          image_resolution: imageResolution,
         }),
       })
 
@@ -172,6 +195,86 @@ export function NovoPostForm() {
             <p className="text-xs text-primary">
               ✓ Recomendado — melhor engajamento no Instagram
             </p>
+          )}
+        </div>
+
+        {/* Tema Visual */}
+        {styleModels.length > 0 && (
+          <div className="space-y-2">
+            <label className="text-sm text-muted-foreground flex items-center gap-1.5">
+              <Palette className="w-3.5 h-3.5" />
+              Estilo Visual do Carrossel
+            </label>
+            <select
+              value={styleModelId}
+              onChange={(e) => setStyleModelId(e.target.value)}
+              className="input-dark w-full"
+              disabled={carregando}
+            >
+              {styleModels.map((modelo) => (
+                <option key={modelo.id} value={modelo.id}>
+                  {modelo.nome}{modelo.ativo ? ' ✓' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Modelo de IA */}
+        <div className="space-y-2">
+          <label className="text-sm text-muted-foreground flex items-center gap-1.5">
+            <Cpu className="w-3.5 h-3.5" />
+            Modelo de Geração
+          </label>
+          <div className="flex gap-2">
+            {OPCOES_MODELO.map((op) => (
+              <button
+                key={op.value}
+                type="button"
+                onClick={() => setImageModel(op.value)}
+                disabled={carregando}
+                className={cn(
+                  'flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 border text-left',
+                  imageModel === op.value
+                    ? 'bg-primary border-primary text-white'
+                    : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                )}
+              >
+                <div>{op.label}</div>
+                <div className={cn('text-xs mt-0.5', imageModel === op.value ? 'text-white/70' : 'text-muted-foreground')}>
+                  {op.desc}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Resolução */}
+        <div className="space-y-2">
+          <label className="text-sm text-muted-foreground flex items-center gap-1.5">
+            <Image className="w-3.5 h-3.5" />
+            Resolução
+          </label>
+          <div className="flex gap-2">
+            {OPCOES_RESOLUCAO.map((op) => (
+              <button
+                key={op.value}
+                type="button"
+                onClick={() => setImageResolution(op.value)}
+                disabled={carregando}
+                className={cn(
+                  'flex-1 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 border',
+                  imageResolution === op.value
+                    ? 'bg-primary border-primary text-white'
+                    : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                )}
+              >
+                {op.label}
+              </button>
+            ))}
+          </div>
+          {imageResolution === '2k' && (
+            <p className="text-xs text-primary">✓ Recomendado — maior qualidade visual</p>
           )}
         </div>
 

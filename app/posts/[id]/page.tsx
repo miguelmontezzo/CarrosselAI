@@ -7,23 +7,26 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { PostDetalhes } from '@/components/posts/PostDetalhes'
-import type { Post, Slide } from '@/types'
+import type { Post, Slide, StyleJson } from '@/types'
 
 interface PageProps {
   params: Promise<{ id: string }>
 }
 
-async function buscarPost(id: string): Promise<Post | null> {
+async function buscarPost(id: string): Promise<{ post: Post; styleJson: StyleJson | null } | null> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
     .from('posts')
-    .select('*')
+    .select('*, style_models(style_json)')
     .eq('id', id)
     .single()
 
   if (error || !data) return null
-  return data as Post
+
+  const styleJson = (data as any).style_models?.style_json ?? null
+  const post = { ...data, style_models: undefined } as Post
+  return { post, styleJson }
 }
 
 async function buscarSlides(postId: string): Promise<Slide[]> {
@@ -43,14 +46,16 @@ export default async function PostPage({ params }: PageProps) {
   const { id } = await params
 
   // Busca o post e seus slides em paralelo
-  const [post, slides] = await Promise.all([
+  const [resultado, slides] = await Promise.all([
     buscarPost(id),
     buscarSlides(id),
   ])
 
-  if (!post) {
+  if (!resultado) {
     notFound()
   }
+
+  const { post, styleJson } = resultado
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -81,7 +86,7 @@ export default async function PostPage({ params }: PageProps) {
       </div>
 
       {/* Componente client com Realtime, preview, aprovação */}
-      <PostDetalhes initialPost={post} initialSlides={slides} />
+      <PostDetalhes initialPost={post} initialSlides={slides} initialStyleJson={styleJson} />
     </div>
   )
 }

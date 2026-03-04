@@ -36,19 +36,23 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Rotas públicas que não precisam de autenticação
+  // Rotas públicas — acessíveis sem login
   const rotasPublicas = ['/login', '/auth', '/api/processar', '/api/postar']
   const isPublica = rotasPublicas.some((rota) =>
     request.nextUrl.pathname.startsWith(rota)
   )
 
-  // Se não está logado e não é rota pública, redireciona para login
-  // Comentado por padrão — ative quando adicionar autenticação completa
-  // if (!user && !isPublica) {
-  //   const loginUrl = new URL('/login', request.url)
-  //   loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
-  //   return NextResponse.redirect(loginUrl)
-  // }
+  // Redireciona para login se não autenticado
+  if (!user && !isPublica) {
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  // Redireciona para dashboard se já logado e tentar acessar /login
+  if (user && request.nextUrl.pathname === '/login') {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
 
   return supabaseResponse
 }

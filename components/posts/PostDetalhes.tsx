@@ -13,6 +13,8 @@ import {
   Calendar,
   Loader2,
   AlertCircle,
+  Download,
+  BadgeCheck,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { ProgressSteps } from './ProgressSteps'
@@ -20,15 +22,16 @@ import { SlideGrid } from './SlideGrid'
 import { LegendaEditor } from './LegendaEditor'
 import { StatusBadge } from '../dashboard/StatusBadge'
 import { toast } from '@/components/ui/use-toast'
-import type { Post, Slide } from '@/types'
+import type { Post, Slide, StyleJson } from '@/types'
 import { cn } from '@/lib/utils'
 
 interface PostDetalhesProps {
   initialPost: Post
   initialSlides: Slide[]
+  initialStyleJson?: StyleJson | null
 }
 
-export function PostDetalhes({ initialPost, initialSlides }: PostDetalhesProps) {
+export function PostDetalhes({ initialPost, initialSlides, initialStyleJson }: PostDetalhesProps) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -38,6 +41,7 @@ export function PostDetalhes({ initialPost, initialSlides }: PostDetalhesProps) 
   const [legenda, setLegenda] = useState(initialPost.legenda ?? '')
   const [agendadoPara, setAgendadoPara] = useState('')
   const [aprovando, setAprovando] = useState(false)
+  const [baixando, setBaixando] = useState(false)
 
   // ─── Supabase Realtime para post e slides ──────────────────────
   useEffect(() => {
@@ -141,6 +145,74 @@ export function PostDetalhes({ initialPost, initialSlides }: PostDetalhesProps) 
     router.push('/posts/novo')
   }
 
+  // ─── Refazer apenas as imagens ─────────────────────────────────
+  async function handleRefazerImagens() {
+    setAprovando(true)
+    try {
+      const response = await fetch('/api/posts/refazer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId: post.id }),
+      })
+
+      if (!response.ok) {
+        throw new Error(await response.text())
+      }
+
+      toast({
+        title: 'Regerando Imagens',
+        description: 'Enviando novos prompts com resolução 2k pro Gemini.',
+      })
+      // O Supabase Realtime se encarrega de transitar o status pra gente
+    } catch (erro) {
+      const msg = erro instanceof Error ? erro.message : 'Falha na requisição'
+      toast({ title: 'Erro ao regerar', description: msg, variant: 'destructive' })
+    } finally {
+      setAprovando(false)
+    }
+  }
+
+  // ─── Marcar como postado manualmente ──────────────────────────
+  async function handleMarcarPostado() {
+    setAprovando(true)
+    try {
+      await fetch('/api/posts/marcar-postado', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId: post.id }),
+      })
+      toast({ title: 'Post marcado como postado!' })
+      router.push('/dashboard')
+    } catch {
+      toast({ title: 'Erro ao marcar', variant: 'destructive' })
+    } finally {
+      setAprovando(false)
+    }
+  }
+
+  // ─── Download de todas as imagens em ZIP ──────────────────────
+  async function handleDownloadZip() {
+    if (!slides.length) return
+    setBaixando(true)
+    try {
+      const { downloadAllImages } = await import('@/lib/download')
+      await downloadAllImages(
+        slides
+          .filter((s) => s.image_url)
+          .map((s) => ({
+            url: s.image_url!,
+            nome: `slide-${s.numero}.jpg`,
+          })),
+        `carrossel-${post.id.slice(0, 8)}.zip`
+      )
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro ao baixar'
+      toast({ title: 'Erro no download', description: msg, variant: 'destructive' })
+    } finally {
+      setBaixando(false)
+    }
+  }
+
   // ─── Determina se pode aprovar ─────────────────────────────────
   const podeAprovar = post.status === 'aguardando_aprovacao'
   const estaGerandoOuProcessando = [
@@ -216,14 +288,41 @@ export function PostDetalhes({ initialPost, initialSlides }: PostDetalhesProps) 
               {agendadoPara ? 'Aprovar e Agendar' : 'Aprovar e Postar Agora'}
             </button>
 
-            {/* Botão reprovar */}
+            {/* Marcar como postado manualmente */}
             <button
-              onClick={handleReprovar}
-              className="btn-secondary w-full justify-center text-sm"
+              onClick={handleMarcarPostado}
+              disabled={aprovando}
+              className="btn-secondary w-full justify-center text-sm text-green-400 border-green-900/50 hover:bg-green-900/20"
             >
-              <XCircle className="w-4 h-4 text-muted-foreground" />
-              Reprovar e Refazer
+              <BadgeCheck className="w-4 h-4" />
+              Marcar como Postado (Manual)
             </button>
+
+            {/* Ações de refação (Botão 1: Reprovar tudo - Botão 2: Reprovar só img) */}
+            <div className="flex gap-2 w-full mt-2">
+              <button
+                onClick={handleReprovar}
+                className="btn-secondary flex-1 justify-center text-sm px-2 text-center"
+                title="Apaga este e cria um do zero"
+              >
+                <XCircle className="w-4 h-4 text-muted-foreground" />
+                Descartar Todo o Post
+              </button>
+
+              <button
+                onClick={handleRefazerImagens}
+                disabled={aprovando}
+                className="btn-secondary flex-1 justify-center text-sm px-2 text-center border-amber-900/50 hover:bg-amber-900/20"
+                title="Mantém o texto e recria só as imagens no modelo"
+              >
+                {aprovando ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-amber-500" />
+                )}
+                <span className="text-amber-500">Refazer Má Imagem</span>
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -237,11 +336,23 @@ export function PostDetalhes({ initialPost, initialSlides }: PostDetalhesProps) 
               <h3 className="font-semibold text-sm">
                 Slides ({slides.length}/{post.num_slides})
               </h3>
-              <p className="text-xs text-muted-foreground">
-                Arraste para reordenar
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="text-xs text-muted-foreground">Arraste para reordenar</p>
+                <button
+                  onClick={handleDownloadZip}
+                  disabled={baixando || slides.every((s) => !s.image_url)}
+                  className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5"
+                >
+                  {baixando ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  {baixando ? 'Baixando...' : 'Baixar ZIP'}
+                </button>
+              </div>
             </div>
-            <SlideGrid slides={slides} />
+            <SlideGrid slides={slides} style={initialStyleJson} />
           </div>
         ) : estaGerandoOuProcessando ? (
           /* Skeleton de slides enquanto gera */

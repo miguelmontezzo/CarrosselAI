@@ -5,8 +5,15 @@
 import { NovoPostForm } from '@/components/posts/NovoPostForm'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { createServiceClient } from '@/lib/supabase/server'
 
-export default function NovoPostPage() {
+export default async function NovoPostPage() {
+  const supabase = createServiceClient()
+  const { data: styleModels } = await supabase
+    .from('style_models')
+    .select('id, nome, ativo')
+    .order('created_at', { ascending: false })
+
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
       {/* Navegação de volta */}
@@ -29,7 +36,7 @@ export default function NovoPostPage() {
       </div>
 
       {/* Formulário principal (componente client) */}
-      <NovoPostForm />
+      <NovoPostForm styleModels={styleModels || []} />
     </div>
   )
 }

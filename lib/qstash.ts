@@ -3,16 +3,17 @@
 // QStash garante delivery confiável de mensagens HTTP com retry
 // ═══════════════════════════════════════════════════════════════
 import { Client, Receiver } from '@upstash/qstash'
+import type { ImageModel, ImageResolution } from '@/types'
 
 // Cliente para publicar mensagens no QStash
 export const qstash = new Client({
-  token: process.env.QSTASH_TOKEN!,
+  token: process.env.QSTASH_TOKEN || 'dummy_token_para_dev',
 })
 
 // Receiver para verificar assinatura das mensagens recebidas
 export const receiver = new Receiver({
-  currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY!,
-  nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY!,
+  currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY || 'dummy_sig_1',
+  nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY || 'dummy_sig_2',
 })
 
 /**
@@ -20,13 +21,31 @@ export const receiver = new Receiver({
  * QStash chama /api/processar com retry automático em caso de falha
  *
  * @param postId - ID do post a ser processado
+ * @param imageModel - Modelo de geração de imagem
+ * @param imageResolution - Resolução das imagens geradas
  */
-export async function dispararProcessamento(postId: string): Promise<void> {
+export async function dispararProcessamento(
+  postId: string,
+  imageModel?: ImageModel,
+  imageResolution?: ImageResolution
+): Promise<void> {
   const url = `${process.env.NEXT_PUBLIC_APP_URL}/api/processar`
+  const body = { postId, image_model: imageModel, image_resolution: imageResolution }
+
+  if (!process.env.QSTASH_TOKEN) {
+    // Mock local: Chama a rota diretamente em background
+    // sem esperar na request principal para simular assincronicidade
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).catch(err => console.error('Erro no mock local de QStash', err))
+    return
+  }
 
   await qstash.publishJSON({
     url,
-    body: { postId },
+    body,
     retries: 3, // 3 tentativas em caso de erro
   })
 }

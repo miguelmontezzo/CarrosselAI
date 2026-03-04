@@ -32,6 +32,7 @@ export interface Post {
   posted_at: string | null
   // Campo virtual para mostrar progresso das imagens (ex: "3/7")
   progresso_imagens?: string
+  capa_url?: string | null
 }
 
 // Representação de um Slide individual
@@ -79,6 +80,8 @@ export interface StyleJson {
     handle: string
   }
   descricao_geral: string
+  // Prompt Gemini-ready gerado na análise para uso direto na geração de imagens
+  image_style_prompt: string
 }
 
 // Estrutura de um slide gerado pelo GPT-4o
@@ -97,12 +100,17 @@ export interface CarrosselGerado {
   slides: SlideGerado[]
 }
 
-// Payload para criar um novo post
+export type ImageModel = 'nanobana-2' | 'nanobana-pro'
+export type ImageResolution = '1k' | '2k'
+
 export interface CriarPostPayload {
   link?: string
   tema?: string
   num_slides: number
   handle: string
+  style_model_id?: string
+  image_model?: ImageModel
+  image_resolution?: ImageResolution
 }
 
 // Payload para aprovar e agendar um post
@@ -115,6 +123,8 @@ export interface AprovarPostPayload {
 // Payload que o QStash envia para /api/processar
 export interface ProcessarPayload {
   postId: string
+  image_model?: ImageModel
+  image_resolution?: ImageResolution
 }
 
 // Payload que o QStash envia para /api/postar

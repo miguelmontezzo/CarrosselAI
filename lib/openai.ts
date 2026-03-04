@@ -1,13 +1,33 @@
 // ═══════════════════════════════════════════════════════════════
-// lib/openai.ts — Integração com GPT-4o para geração de conteúdo
+// lib/openai.ts — Integração com Claude Sonnet 4.6 via OpenRouter
 // Gera slides, legendas e analisa estilos visuais
 // ═══════════════════════════════════════════════════════════════
 import OpenAI from 'openai'
 import type { CarrosselGerado, StyleJson } from '@/types'
 
-// Instância singleton do cliente OpenAI
+const MODEL = 'anthropic/claude-sonnet-4-6'
+
+/** Remove markdown code fences que Claude inclui na resposta */
+function extrairJSON(content: string): string {
+  const trimmed = content.trim()
+  if (!trimmed.startsWith('`')) return trimmed
+
+  const lines = trimmed.split('\n')
+  // Remove primeira linha (```json ou ```)
+  lines.shift()
+  // Remove última linha se for fechamento de fence
+  if (lines[lines.length - 1]?.trim() === '```') lines.pop()
+  return lines.join('\n').trim()
+}
+
+// Cliente OpenAI SDK apontando para OpenRouter
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: 'https://openrouter.ai/api/v1',
+  defaultHeaders: {
+    'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:5001',
+    'X-Title': 'CarrosselAI',
+  },
 })
 
 // ─── Prompt base para geração de carrosseis ─────────────────────
@@ -37,9 +57,15 @@ export async function gerarCarrossel(
   numSlides: number,
   styleModel?: StyleJson | null
 ): Promise<CarrosselGerado> {
+  // Informações de estilo para GPT-4o gerar bom conteúdo de texto
   const styleInfo = styleModel
-    ? `\nEstilo de referência: ${JSON.stringify(styleModel)}`
+    ? `\nEstilo visual: ${styleModel.descricao_geral}\nCores: fundo ${styleModel.cores.fundo}, texto principal ${styleModel.cores.texto_principal}, destaque ${styleModel.cores.destaque}\nTipografia: ${styleModel.tipografia.titulo} (títulos), ${styleModel.tipografia.corpo} (corpo)`
     : '\nUse estilo dark cinematográfico com fundo preto e texto branco'
+
+  // Template de image_prompt dinâmico baseado no estilo selecionado
+  const imagePromptTemplate = styleModel
+    ? `"${styleModel.image_style_prompt}. Photorealistic scene specific to this slide's content. Layout: ${styleModel.layout}. Background color: ${styleModel.cores.fundo}. Image position: ${styleModel.posicao_elementos.imagem}. Headline at ${styleModel.posicao_elementos.titulo} using ${styleModel.tipografia.titulo} in ${styleModel.cores.texto_principal}: [EXACT HEADLINE TEXT]. Body at ${styleModel.posicao_elementos.corpo} using ${styleModel.tipografia.corpo} in ${styleModel.cores.texto_secundario}: [EXACT BODY TEXT]. CTA at ${styleModel.posicao_elementos.cta} in ${styleModel.cores.destaque}: [EXACT CTA TEXT]. Handle at ${styleModel.posicao_elementos.handle}: [HANDLE TEXT]. Accent color ${styleModel.cores.destaque}. No extra elements, 4:5 ratio, ultra detailed 8K"`
+    : `"Cinematic hyperrealistic image, upper 55%: SPECIFIC SCENE FOR THIS SLIDE, center: smooth gradient fade to pure black #000000, lower 45%: pure solid black #000000, bold white uppercase CENTER ALIGNED text: HEADLINE, smaller white CENTER ALIGNED text: BODY, small grey centered text above handle: CTA, small grey centered text bottom: HANDLE, no extra elements, 4:5 ratio, ultra detailed 8K"`
 
   const userPrompt = `Conteúdo: ${conteudo}
 Handle: ${handle}
@@ -55,20 +81,19 @@ Retorne JSON exato no formato:
       "body": "texto explicativo 2-4 linhas claro e direto",
       "cta": "ARRASTA PRO LADO >>>",
       "handle": "${handle}",
-      "image_prompt": "Cinematic hyperrealistic image, upper 55%: SPECIFIC SCENE FOR THIS SLIDE, center: smooth gradient fade to pure black #000000, lower 45%: pure solid black #000000, bold white uppercase CENTER ALIGNED text: HEADLINE, smaller white CENTER ALIGNED text: BODY, small grey centered text above handle: CTA, small grey centered text bottom: HANDLE, no extra elements, 4:5 ratio, ultra detailed 8K"
+      "image_prompt": ${imagePromptTemplate}
     }
   ]
 }`
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o',
+    model: MODEL,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT_CARROSSEL },
       { role: 'user', content: userPrompt },
     ],
-    response_format: { type: 'json_object' }, // Força resposta JSON
-    temperature: 0.8, // Criatividade moderada
-    max_tokens: 4000,
+    temperature: 0.8,
+    max_tokens: 8000,
   })
 
   const content = completion.choices[0]?.message?.content
@@ -76,7 +101,7 @@ Retorne JSON exato no formato:
     throw new Error('GPT-4o não retornou conteúdo')
   }
 
-  const resultado = JSON.parse(content) as CarrosselGerado
+  const resultado = JSON.parse(extrairJSON(content)) as CarrosselGerado
 
   // Validação básica da estrutura retornada
   if (!resultado.slides || !Array.isArray(resultado.slides)) {
@@ -106,7 +131,7 @@ export async function gerarLegenda(
     .join('\n')
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o',
+    model: MODEL,
     messages: [
       {
         role: 'system',
@@ -152,7 +177,7 @@ export async function analisarEstiloVisual(
   }))
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o',
+    model: MODEL,
     messages: [
       {
         role: 'user',
@@ -181,15 +206,15 @@ Retorne APENAS JSON válido no formato:
     "cta": "posição do call to action",
     "handle": "posição do handle"
   },
-  "descricao_geral": "descrição completa do estilo em 2-3 frases"
+  "descricao_geral": "descrição completa do estilo em 2-3 frases",
+  "image_style_prompt": "concise English prompt for an AI image generator to reproduce this exact visual style — include lighting mood, color palette with hex codes, typography style, composition, background treatment, and overall aesthetic. This will be used as a prefix in Gemini image generation prompts."
 }`,
           },
           ...imageMessages,
         ],
       },
     ],
-    response_format: { type: 'json_object' },
-    max_tokens: 1000,
+    max_tokens: 1500,
   })
 
   const content = completion.choices[0]?.message?.content
@@ -197,7 +222,7 @@ Retorne APENAS JSON válido no formato:
     throw new Error('GPT-4 Vision não retornou análise de estilo')
   }
 
-  return JSON.parse(content) as StyleJson
+  return JSON.parse(extrairJSON(content)) as StyleJson
 }
 
 export { openai }

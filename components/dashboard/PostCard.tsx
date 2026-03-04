@@ -30,10 +30,19 @@ export function PostCard({ post }: PostCardProps) {
     <Link href={`/posts/${post.id}`}>
       <div className="card-dark card-glow cursor-pointer transition-all duration-200 hover:border-border/80 group">
         <div className="flex gap-4">
-          {/* Preview do primeiro slide */}
-          <div className="slide-preview w-20 h-[100px] shrink-0 rounded-lg overflow-hidden bg-black/50">
-            {/* Placeholder cinza enquanto sem imagem */}
-            <div className="w-full h-full skeleton" />
+          {/* Capa — primeiro slide ou skeleton */}
+          <div className="relative w-20 h-[100px] shrink-0 rounded-lg overflow-hidden bg-black/50">
+            {post.capa_url ? (
+              <Image
+                src={post.capa_url}
+                alt={post.titulo ?? 'Capa'}
+                fill
+                className="object-cover"
+                sizes="80px"
+              />
+            ) : (
+              <div className="w-full h-full skeleton" />
+            )}
           </div>
 
           {/* Conteúdo do card */}

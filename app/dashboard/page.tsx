@@ -26,7 +26,23 @@ async function buscarPosts(): Promise<Post[]> {
     return []
   }
 
-  return data as Post[]
+  const posts = data as Post[]
+
+  // Busca o primeiro slide de cada post para usar como capa
+  if (posts.length > 0) {
+    const { data: capas } = await supabase
+      .from('slides')
+      .select('post_id, image_url')
+      .in('post_id', posts.map((p) => p.id))
+      .eq('numero', 1)
+
+    if (capas) {
+      const capaMap = Object.fromEntries(capas.map((c) => [c.post_id, c.image_url]))
+      posts.forEach((p) => { p.capa_url = capaMap[p.id] ?? null })
+    }
+  }
+
+  return posts
 }
 
 export default async function DashboardPage() {
