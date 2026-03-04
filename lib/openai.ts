@@ -40,7 +40,8 @@ no estilo jornalístico dramático. Você cria conteúdo que gera engajamento m�
 com headlines impactantes e visual cinematográfico.
 
 REGRAS OBRIGATÓRIAS:
-- Retorne APENAS JSON válido, sem markdown, sem explicações
+- TRADUZA AUTOMATICAMENTE qualquer conteúdo de entrada (notícias, temas) para o PORTUGUÊS DO BRASIL.
+- Retorne APENAS JSON válido, sem markdown, sem explicações. Toda a saída de texto (headlines, body, legenda) DEVE estar em Português do Brasil (pt-BR).
 - Headlines sempre em CAIXA ALTA com no máximo 6 palavras
 - Body text informativo com 2-4 linhas concisas
 - image_prompt sempre em inglês, ultra-detalhado
@@ -142,6 +143,7 @@ export async function gerarLegenda(
         content: `Você é especialista em copywriting para Instagram.
 Crie legendas que geram engajamento máximo: fazem perguntas, criam urgência,
 têm emojis estratégicos e hashtags relevantes.
+O conteúdo gerado DEVE estar estritamente em PORTUGUÊS DO BRASIL (pt-BR), traduzindo o assunto se necessário.
 Tom: profissional e descontraído ao mesmo tempo.
 Retorne APENAS o texto da legenda, sem explicações.`,
       },

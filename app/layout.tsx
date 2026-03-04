@@ -10,6 +10,17 @@ export const metadata: Metadata = {
   title: 'CarrosselAI — Carrosseis para Instagram com IA',
   description: 'Gere carrosseis virais para Instagram automaticamente com IA',
   keywords: 'Instagram, carrossel, IA, automação, marketing',
+  manifest: '/manifest.json',
+  themeColor: '#000000',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'CarrosselAI',
+  },
+  formatDetection: {
+    telephone: false,
+  },
   openGraph: {
     title: 'CarrosselAI',
     description: 'Carrosseis para Instagram com IA',
@@ -25,7 +36,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap"
           rel="stylesheet"
         />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body className="bg-background text-foreground antialiased">
         {children}
