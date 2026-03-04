@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { PostCard } from './PostCard'
+import { ModalExcluirPost } from './ModalExcluirPost'
 import type { Post } from '@/types'
 
 interface PostListProps {
@@ -14,6 +15,7 @@ interface PostListProps {
 
 export function PostList({ initialPosts }: PostListProps) {
   const [posts, setPosts] = useState<Post[]>(initialPosts)
+  const [postParaExcluir, setPostParaExcluir] = useState<Post | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -53,6 +55,10 @@ export function PostList({ initialPosts }: PostListProps) {
     }
   }, [supabase])
 
+  function handlePostDeleted(postId: string) {
+    setPosts((prev) => prev.filter((p) => p.id !== postId))
+  }
+
   if (posts.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -62,10 +68,25 @@ export function PostList({ initialPosts }: PostListProps) {
   }
 
   return (
-    <div className="space-y-3">
-      {posts.map((post) => (
-        <PostCard key={post.id} post={post} />
-      ))}
-    </div>
+    <>
+      <div className="space-y-3">
+        {posts.map((post) => (
+          <PostCard
+            key={post.id}
+            post={post}
+            onDelete={(p) => setPostParaExcluir(p)}
+          />
+        ))}
+      </div>
+
+      {/* Modal de confirmação de exclusão */}
+      <ModalExcluirPost
+        postId={postParaExcluir?.id ?? ''}
+        postTitulo={postParaExcluir?.titulo ?? null}
+        open={postParaExcluir !== null}
+        onClose={() => setPostParaExcluir(null)}
+        onDeleted={handlePostDeleted}
+      />
+    </>
   )
 }

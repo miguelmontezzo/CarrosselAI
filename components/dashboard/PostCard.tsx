@@ -7,7 +7,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ArrowRight, Calendar, Link as LinkIcon } from 'lucide-react'
+import { ArrowRight, Calendar, Link as LinkIcon, Trash2 } from 'lucide-react'
 import { StatusBadge } from './StatusBadge'
 import { ProgressBar } from './ProgressBar'
 import type { Post } from '@/types'
@@ -15,9 +15,10 @@ import { statusToProgress } from '@/types'
 
 interface PostCardProps {
   post: Post
+  onDelete: (post: Post) => void
 }
 
-export function PostCard({ post }: PostCardProps) {
+export function PostCard({ post, onDelete }: PostCardProps) {
   const tempoRelativo = formatDistanceToNow(new Date(post.created_at), {
     addSuffix: true,
     locale: ptBR,
@@ -27,79 +28,95 @@ export function PostCard({ post }: PostCardProps) {
   const isCarregando = progresso > 0 && progresso < 80
 
   return (
-    <Link href={`/posts/${post.id}`}>
-      <div className="card-dark card-glow cursor-pointer transition-all duration-200 hover:border-border/80 group">
-        <div className="flex gap-4">
-          {/* Capa — primeiro slide ou skeleton */}
-          <div className="relative w-20 h-[100px] shrink-0 rounded-lg overflow-hidden bg-black/50">
-            {post.capa_url ? (
-              <Image
-                src={post.capa_url}
-                alt={post.titulo ?? 'Capa'}
-                fill
-                className="object-cover"
-                sizes="80px"
-              />
-            ) : (
-              <div className="w-full h-full skeleton" />
-            )}
-          </div>
-
-          {/* Conteúdo do card */}
-          <div className="flex-1 min-w-0 space-y-2">
-            {/* Título e status */}
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="font-semibold text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-                {post.titulo ?? 'Gerando conteúdo...'}
-              </h3>
-              <StatusBadge
-                status={post.status}
-                progresso={post.progresso_imagens}
-              />
+    <div className="relative group">
+      <Link href={`/posts/${post.id}`}>
+        <div className="card-dark card-glow cursor-pointer transition-all duration-200 hover:border-border/80 group">
+          <div className="flex gap-4">
+            {/* Capa — primeiro slide ou skeleton */}
+            <div className="relative w-20 h-[100px] shrink-0 rounded-lg overflow-hidden bg-black/50">
+              {post.capa_url ? (
+                <Image
+                  src={post.capa_url}
+                  alt={post.titulo ?? 'Capa'}
+                  fill
+                  className="object-cover"
+                  sizes="80px"
+                />
+              ) : (
+                <div className="w-full h-full skeleton" />
+              )}
             </div>
 
-            {/* Informações secundárias */}
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span>{post.handle}</span>
-              <span>·</span>
-              <span>{post.num_slides} slides</span>
-              <span>·</span>
-              <span suppressHydrationWarning>{tempoRelativo}</span>
+            {/* Conteúdo do card */}
+            <div className="flex-1 min-w-0 space-y-2">
+              {/* Título e status */}
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-semibold text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                  {post.titulo ?? 'Gerando conteúdo...'}
+                </h3>
+                <StatusBadge
+                  status={post.status}
+                  progresso={post.progresso_imagens}
+                />
+              </div>
+
+              {/* Informações secundárias */}
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span>{post.handle}</span>
+                <span>·</span>
+                <span>{post.num_slides} slides</span>
+                <span>·</span>
+                <span suppressHydrationWarning>{tempoRelativo}</span>
+              </div>
+
+              {/* Link fonte ou tema */}
+              {post.link_fonte && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <LinkIcon className="w-3 h-3" />
+                  <span className="truncate">{new URL(post.link_fonte).hostname}</span>
+                </div>
+              )}
+
+              {/* Data de agendamento */}
+              {post.agendado_para && post.status === 'agendado' && (
+                <div className="flex items-center gap-1.5 text-xs text-purple-400">
+                  <Calendar className="w-3 h-3" />
+                  <span suppressHydrationWarning>
+                    {new Date(post.agendado_para).toLocaleDateString('pt-BR', {
+                      day: '2-digit',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+              )}
+
+              {/* Barra de progresso para posts em geração */}
+              {isCarregando && (
+                <ProgressBar progresso={progresso} />
+              )}
             </div>
 
-            {/* Link fonte ou tema */}
-            {post.link_fonte && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <LinkIcon className="w-3 h-3" />
-                <span className="truncate">{new URL(post.link_fonte).hostname}</span>
-              </div>
-            )}
-
-            {/* Data de agendamento */}
-            {post.agendado_para && post.status === 'agendado' && (
-              <div className="flex items-center gap-1.5 text-xs text-purple-400">
-                <Calendar className="w-3 h-3" />
-                <span suppressHydrationWarning>
-                  {new Date(post.agendado_para).toLocaleDateString('pt-BR', {
-                    day: '2-digit',
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </span>
-              </div>
-            )}
-
-            {/* Barra de progresso para posts em geração */}
-            {isCarregando && (
-              <ProgressBar progresso={progresso} />
-            )}
+            {/* Seta de navegação */}
+            <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0 self-center" />
           </div>
-
-          {/* Seta de navegação */}
-          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0 self-center" />
         </div>
-      </div>
-    </Link>
+      </Link>
+
+      {/* Botão de excluir — aparece no hover, fora do Link para não navegar */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          onDelete(post)
+        }}
+        className="absolute top-3 right-10 z-10 p-1.5 rounded-lg bg-background/80 border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-500/10 hover:border-red-500/40 hover:text-red-400 text-muted-foreground"
+        title="Excluir carrossel"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+    </div>
   )
 }
