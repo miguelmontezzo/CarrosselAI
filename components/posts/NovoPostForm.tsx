@@ -89,7 +89,8 @@ export function NovoPostForm({ styleModels }: NovoPostFormProps) {
       })
 
       // Redireciona para a página do post onde o usuário acompanha em tempo real
-      router.push(`/posts/${postId}`)
+      // Passa as config de modelo via query parameter para disparar o processamento na tela seguinte
+      router.push(`/posts/${postId}?model=${imageModel}&res=${imageResolution}`)
     } catch (erro) {
       const mensagem = erro instanceof Error ? erro.message : 'Erro desconhecido'
       toast({ title: 'Erro ao criar post', description: mensagem, variant: 'destructive' })

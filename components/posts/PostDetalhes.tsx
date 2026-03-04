@@ -96,6 +96,31 @@ export function PostDetalhes({ initialPost, initialSlides, initialStyleJson }: P
     }
   }, [post.id, supabase]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ─── Trigger processamento no cliente (Gatilho para contornar Vercel Serverless) ─
+  useEffect(() => {
+    // Se o post acabou de ser 'criado' com status 'gerando' e estamos no browser, disparar processamento.
+    // Usamos sessionStorage pra evitar chamar o fetch repetidamente em re-renders / Strict Mode
+    const triggerHandled = sessionStorage.getItem(`triggered_${post.id}`)
+
+    if (initialPost.status === 'gerando' && !triggerHandled) {
+      sessionStorage.setItem(`triggered_${post.id}`, 'true')
+
+      const searchParams = new URLSearchParams(window.location.search)
+      const imageModel = searchParams.get('model') || 'nanobana-2'
+      const imageRes = searchParams.get('res') || '2k'
+
+      console.log('Disparando processamento do Client pro Vercel Edge...')
+      fetch('/api/processar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId: post.id, image_model: imageModel, image_resolution: imageRes }),
+      }).catch(err => {
+        console.error('Erro ao disparar processamento:', err)
+        toast({ title: 'Erro', description: 'Ocorreu um erro ao iniciar a IA.', variant: 'destructive' })
+      })
+    }
+  }, [initialPost.status, post.id])
+
   // ─── Aprovar e agendar o post ──────────────────────────────────
   async function handleAprovar() {
     if (!legenda.trim()) {
