@@ -4,8 +4,10 @@
 // ═══════════════════════════════════════════════════════════════
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { dispararProcessamento } from '@/lib/qstash'
 import type { CriarPostPayload } from '@/types'
+
+// Aumenta o limite de tempo de execução pro Vercel free(60s) / pro(300s)
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
@@ -65,9 +67,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Dispara o processamento assíncrono via QStash
-    // QStash garante entrega e retry automático
-    await dispararProcessamento(post.id, image_model, image_resolution)
+    // Dispara o processamento assíncrono interno via fetch local sem aguardar
+    // (Ainda arriscado no Vercel Hobby, ideal é que o front-end chame a /api/processar depois da criação)
+    fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5001'}/api/processar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ postId: post.id, image_model: image_model, image_resolution: image_resolution }),
+    }).catch(err => console.error('Erro no processamento interno:', err))
 
     return NextResponse.json({ postId: post.id }, { status: 201 })
   } catch (erro) {

@@ -9,6 +9,10 @@ import { gerarCarrossel } from '@/lib/openai'
 import { gerarTodasImagens, salvarImagemNoStorage } from '@/lib/nanobana'
 import type { ProcessarPayload, SlideGerado, StyleJson, CarrosselGerado } from '@/types'
 
+// Aumenta o limite de tempo de execução no Vercel para 60 segundos (limite hobby)
+// Se for plano Pro na Vercel, pode colocar até 300 segundos
+export const maxDuration = 60;
+
 // Utilitário para atualizar status no banco
 async function atualizarStatus(
   supabase: ReturnType<typeof createServiceClient>,
@@ -24,13 +28,18 @@ async function atualizarStatus(
 
 export async function POST(req: NextRequest) {
   // QStash envia o body como texto — fazemos parse manual
-  const bodyText = await req.text()
   let payload: ProcessarPayload
 
-  try {
-    payload = JSON.parse(bodyText) as ProcessarPayload
-  } catch {
-    return NextResponse.json({ error: 'Payload inválido' }, { status: 400 })
+  // Verifica se o parser deve focar em req.text (Qstash) ou req.json (Chamada direta/Fetch)
+  if (req.headers.get('content-type')?.includes('application/json')) {
+    payload = await req.json() as ProcessarPayload
+  } else {
+    const bodyText = await req.text()
+    try {
+      payload = JSON.parse(bodyText) as ProcessarPayload
+    } catch {
+      return NextResponse.json({ error: 'Payload inválido' }, { status: 400 })
+    }
   }
 
   const { postId, image_model = 'nanobana-2', image_resolution = '2k' } = payload
