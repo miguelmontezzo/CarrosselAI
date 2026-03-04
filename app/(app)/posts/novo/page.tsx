@@ -7,6 +7,10 @@ import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
 
+// Força a página a ser sempre dinâmica, sem cache do Next.js
+// Isso garante que os estilos criados recentemente apareçam imediatamente na lista
+export const dynamic = 'force-dynamic'
+
 export default async function NovoPostPage() {
   const supabase = createServiceClient()
   const { data: styleModels } = await supabase
