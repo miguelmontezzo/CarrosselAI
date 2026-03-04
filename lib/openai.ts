@@ -13,22 +13,26 @@ function extrairJSON(content: string): string {
   if (!trimmed.startsWith('`')) return trimmed
 
   const lines = trimmed.split('\n')
-  // Remove primeira linha (```json ou ```)
   lines.shift()
-  // Remove última linha se for fechamento de fence
   if (lines[lines.length - 1]?.trim() === '```') lines.pop()
   return lines.join('\n').trim()
 }
 
-// Cliente OpenAI SDK apontando para OpenRouter
-const openai = new OpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: 'https://openrouter.ai/api/v1',
-  defaultHeaders: {
-    'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:5001',
-    'X-Title': 'CarrosselAI',
-  },
-})
+// Inicialização lazy — evita erro em build time quando env vars não estão disponíveis
+let _client: OpenAI | null = null
+function getClient(): OpenAI {
+  if (!_client) {
+    _client = new OpenAI({
+      apiKey: process.env.OPENROUTER_API_KEY,
+      baseURL: 'https://openrouter.ai/api/v1',
+      defaultHeaders: {
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL ?? 'https://carrosselai.vercel.app',
+        'X-Title': 'CarrosselAI',
+      },
+    })
+  }
+  return _client
+}
 
 // ─── Prompt base para geração de carrosseis ─────────────────────
 const SYSTEM_PROMPT_CARROSSEL = `Você é especialista em criar carrosseis virais para Instagram
@@ -86,7 +90,7 @@ Retorne JSON exato no formato:
   ]
 }`
 
-  const completion = await openai.chat.completions.create({
+  const completion = await getClient().chat.completions.create({
     model: MODEL,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT_CARROSSEL },
@@ -130,7 +134,7 @@ export async function gerarLegenda(
     .map((s, i) => `Slide ${i + 1}: ${s.headline} — ${s.body}`)
     .join('\n')
 
-  const completion = await openai.chat.completions.create({
+  const completion = await getClient().chat.completions.create({
     model: MODEL,
     messages: [
       {
@@ -176,7 +180,7 @@ export async function analisarEstiloVisual(
     },
   }))
 
-  const completion = await openai.chat.completions.create({
+  const completion = await getClient().chat.completions.create({
     model: MODEL,
     messages: [
       {
@@ -225,4 +229,3 @@ Retorne APENAS JSON válido no formato:
   return JSON.parse(extrairJSON(content)) as StyleJson
 }
 
-export { openai }
