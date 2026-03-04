@@ -3,10 +3,11 @@
 // components/posts/NovoPostForm.tsx — Formulário de criação de post
 // Toggle entre "Colar Link" e "Digitar Tema" com animação
 // ═══════════════════════════════════════════════════════════════
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Link, FileText, Loader2, Sparkles, Hash, Palette, Cpu, Image } from 'lucide-react'
 import { toast } from '@/components/ui/use-toast'
+import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import type { ImageModel, ImageResolution } from '@/types'
 
@@ -28,20 +29,38 @@ interface NovoPostFormProps {
   styleModels: { id: string; nome: string; ativo: boolean }[]
 }
 
-export function NovoPostForm({ styleModels }: NovoPostFormProps) {
+export function NovoPostForm({ styleModels: initialStyleModels }: NovoPostFormProps) {
   const router = useRouter()
+  const [styleModels, setStyleModels] = useState(initialStyleModels)
   const [modo, setModo] = useState<ModoInput>('link')
   const [link, setLink] = useState('')
   const [tema, setTema] = useState('')
   const [numSlides, setNumSlides] = useState(7)
   const [handle, setHandle] = useState('@miguelito.ai')
   const [styleModelId, setStyleModelId] = useState(
-    styleModels.find((m) => m.ativo)?.id || styleModels[0]?.id || ''
+    initialStyleModels.find((m) => m.ativo)?.id || initialStyleModels[0]?.id || ''
   )
   const [imageModel, setImageModel] = useState<ImageModel>('nanobana-2')
   const [imageResolution, setImageResolution] = useState<ImageResolution>('2k')
   const [carregando, setCarregando] = useState(false)
   const [etapa, setEtapa] = useState('')
+
+  // Busca estilos frescos do banco ao montar, ignorando o cache do router do Next.js
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from('style_models')
+      .select('id, nome, ativo')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setStyleModels(data)
+          // Selecionar o estilo ativo por padrão (ou o primeiro)
+          const ativo = data.find((m) => m.ativo)
+          setStyleModelId(ativo?.id || data[0]?.id || '')
+        }
+      })
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
