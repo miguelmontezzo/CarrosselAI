@@ -75,13 +75,15 @@ export default async function PostPage({ params }: PageProps) {
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">
           ID: {post.id} · Criado em{' '}
-          {new Date(post.created_at).toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
+          <span suppressHydrationWarning>
+            {new Date(post.created_at).toLocaleDateString('pt-BR', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </span>
         </p>
       </div>
 

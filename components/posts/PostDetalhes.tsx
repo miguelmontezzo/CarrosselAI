@@ -271,6 +271,7 @@ export function PostDetalhes({ initialPost, initialSlides, initialStyleJson }: P
                 onChange={(e) => setAgendadoPara(e.target.value)}
                 className="input-dark text-sm"
                 min={new Date().toISOString().slice(0, 16)}
+                suppressHydrationWarning
               />
             </div>
 
@@ -395,7 +396,9 @@ export function PostDetalhes({ initialPost, initialSlides, initialStyleJson }: P
             {post.posted_at && (
               <p className="text-xs text-muted-foreground">
                 Publicado em{' '}
-                {format(new Date(post.posted_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                <span suppressHydrationWarning>
+                  {format(new Date(post.posted_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                </span>
               </p>
             )}
             <p className="text-xs text-muted-foreground">

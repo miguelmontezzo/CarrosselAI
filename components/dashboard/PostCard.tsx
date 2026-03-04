@@ -64,7 +64,7 @@ export function PostCard({ post }: PostCardProps) {
               <span>·</span>
               <span>{post.num_slides} slides</span>
               <span>·</span>
-              <span>{tempoRelativo}</span>
+              <span suppressHydrationWarning>{tempoRelativo}</span>
             </div>
 
             {/* Link fonte ou tema */}
@@ -79,7 +79,7 @@ export function PostCard({ post }: PostCardProps) {
             {post.agendado_para && post.status === 'agendado' && (
               <div className="flex items-center gap-1.5 text-xs text-purple-400">
                 <Calendar className="w-3 h-3" />
-                <span>
+                <span suppressHydrationWarning>
                   {new Date(post.agendado_para).toLocaleDateString('pt-BR', {
                     day: '2-digit',
                     month: 'short',

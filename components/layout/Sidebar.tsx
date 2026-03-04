@@ -1,39 +1,16 @@
 'use client'
-// ═══════════════════════════════════════════════════════════════
-// components/layout/Sidebar.tsx — Navegação lateral fixa
-// ═══════════════════════════════════════════════════════════════
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import {
-  LayoutDashboard,
-  Plus,
-  Sparkles,
-  Palette,
-  LogOut,
-  User,
-} from 'lucide-react'
+import { LayoutDashboard, Plus, Sparkles, Palette, LogOut, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { logout } from '@/app/login/actions'
 
-const navItems = [
-  {
-    href: '/dashboard',
-    icon: LayoutDashboard,
-    label: 'Dashboard',
-  },
-  {
-    href: '/posts/novo',
-    icon: Plus,
-    label: 'Novo Post',
-    destaque: true,
-  },
-  {
-    href: '/estilos',
-    icon: Palette,
-    label: 'Estilos Visuais',
-  },
+export const navItems = [
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/posts/novo', icon: Plus, label: 'Novo Post', destaque: true },
+  { href: '/estilos', icon: Palette, label: 'Estilos Visuais' },
 ]
 
 export function Sidebar() {
@@ -41,38 +18,32 @@ export function Sidebar() {
   const [email, setEmail] = useState<string | null>(null)
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => {
+    createClient().auth.getUser().then(({ data }) => {
       setEmail(data.user?.email ?? null)
     })
   }, [])
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-card border-r border-border flex flex-col z-50">
+    // hidden no mobile, flex no desktop
+    <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-card border-r border-border flex-col z-50">
       {/* Logo */}
-      <div className="p-6 border-b border-border">
+      <div className="p-6 border-b border-border shrink-0">
         <Link href="/dashboard" className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <div>
-            <span className="titulo-bebas text-xl text-gradient">
-              CarrosselAI
-            </span>
-            <p className="text-xs text-muted-foreground -mt-1">
-              Posts automáticos IA
-            </p>
+            <span className="titulo-bebas text-xl text-gradient">CarrosselAI</span>
+            <p className="text-xs text-muted-foreground -mt-1">Posts automáticos IA</p>
           </div>
         </Link>
       </div>
 
-      {/* Navegação principal */}
-      <nav className="flex-1 p-4 space-y-1">
+      {/* Nav */}
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
-          const isActive =
-            pathname === item.href ||
+          const isActive = pathname === item.href ||
             (item.href !== '/dashboard' && pathname.startsWith(item.href))
-
           return (
             <Link
               key={item.href}
@@ -93,9 +64,8 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Rodapé — usuário + logout */}
-      <div className="p-4 border-t border-border space-y-2">
-        {/* Info do usuário */}
+      {/* Rodapé */}
+      <div className="p-4 border-t border-border space-y-2 shrink-0">
         <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-secondary/50">
           <User className="w-4 h-4 text-primary shrink-0" />
           <div className="flex-1 min-w-0">
@@ -103,8 +73,6 @@ export function Sidebar() {
             <p className="text-xs text-muted-foreground">Logado</p>
           </div>
         </div>
-
-        {/* Botão logout */}
         <form action={logout}>
           <button
             type="submit"
