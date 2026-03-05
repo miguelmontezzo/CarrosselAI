@@ -1,7 +1,7 @@
 'use client'
 // ═══════════════════════════════════════════════════════════════
 // components/estilos/EstilosForm.tsx — Upload de imagens de referência
-// GPT-4 Vision analisa o estilo e cria um style_model
+// Vision analisa o estilo e cria um style_model
 // ═══════════════════════════════════════════════════════════════
 import { useState, useRef } from 'react'
 import { Upload, Loader2, CheckCircle, Palette, X } from 'lucide-react'
@@ -200,7 +200,7 @@ export function EstilosForm({ estilosExistentes: initialEstilos }: EstilosFormPr
           {carregando ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              Analisando com GPT-4 Vision...
+              Analisando estilo visual...
             </>
           ) : (
             <>
