@@ -68,9 +68,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ estilo, styleJson })
   } catch (erro) {
-    console.error('[estilos] Erro:', erro)
+    const msg = erro instanceof Error ? erro.message : String(erro)
+    console.error('[estilos] Erro:', msg)
     return NextResponse.json(
-      { error: 'Erro ao analisar estilo visual' },
+      { error: `Erro ao analisar estilo visual: ${msg}` },
       { status: 500 }
     )
   }
