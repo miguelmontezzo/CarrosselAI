@@ -4,7 +4,7 @@
 // Vision analisa o estilo e cria um style_model
 // ═══════════════════════════════════════════════════════════════
 import { useState, useRef } from 'react'
-import { Upload, Loader2, CheckCircle, Palette, X } from 'lucide-react'
+import { Upload, Loader2, CheckCircle, Palette, X, Pencil, Trash2, ChevronDown, ChevronUp, Save } from 'lucide-react'
 import { toast } from '@/components/ui/use-toast'
 import { createClient } from '@/lib/supabase/client'
 import type { StyleModel } from '@/types'
@@ -21,6 +21,13 @@ export function EstilosForm({ estilosExistentes: initialEstilos }: EstilosFormPr
   const [carregando, setCarregando] = useState(false)
   const [analise, setAnalise] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Estado de edição
+  const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [editNome, setEditNome] = useState('')
+  const [editDescricao, setEditDescricao] = useState('')
+  const [editPromptImagem, setEditPromptImagem] = useState('')
+  const [salvando, setSalvando] = useState(false)
 
   async function recarregarEstilos() {
     const supabase = createClient()
@@ -42,6 +49,65 @@ export function EstilosForm({ estilosExistentes: initialEstilos }: EstilosFormPr
 
   function removerArquivo(index: number) {
     setArquivos((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  function abrirEdicao(estilo: StyleModel) {
+    setEditandoId(estilo.id)
+    setEditNome(estilo.nome)
+    setEditDescricao(estilo.style_json.descricao_geral ?? '')
+    setEditPromptImagem(
+      estilo.style_json.prompt_base_imagem ??
+      estilo.style_json.image_style_prompt ??
+      ''
+    )
+  }
+
+  function fecharEdicao() {
+    setEditandoId(null)
+  }
+
+  async function salvarEdicao(estilo: StyleModel) {
+    setSalvando(true)
+    try {
+      const novoStyleJson = {
+        ...estilo.style_json,
+        descricao_geral: editDescricao,
+        image_style_prompt: editPromptImagem,
+        prompt_base_imagem: editPromptImagem,
+      }
+
+      const res = await fetch('/api/estilos', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: estilo.id, nome: editNome, style_json: novoStyleJson }),
+      })
+
+      if (!res.ok) throw new Error('Erro ao salvar')
+
+      toast({ title: 'Estilo atualizado!' })
+      fecharEdicao()
+      await recarregarEstilos()
+    } catch {
+      toast({ title: 'Erro ao salvar estilo', variant: 'destructive' })
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  async function excluirEstilo(id: string) {
+    if (!confirm('Excluir este estilo?')) return
+    try {
+      const res = await fetch('/api/estilos', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      if (!res.ok) throw new Error('Erro ao excluir')
+      toast({ title: 'Estilo excluído' })
+      await recarregarEstilos()
+    } catch {
+      toast({ title: 'Erro ao excluir estilo', variant: 'destructive' })
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -82,7 +148,6 @@ export function EstilosForm({ estilosExistentes: initialEstilos }: EstilosFormPr
       setNome('')
       setArquivos([])
 
-      // Recarrega a lista de estilos automaticamente após salvar
       await recarregarEstilos()
     } catch {
       toast({ title: 'Erro ao analisar estilo', variant: 'destructive' })
@@ -98,30 +163,114 @@ export function EstilosForm({ estilosExistentes: initialEstilos }: EstilosFormPr
         <div className="card-dark space-y-3">
           <h3 className="text-sm font-semibold">Estilos Salvos</h3>
           <div className="space-y-2">
-            {estilos.map((estilo) => (
-              <div
-                key={estilo.id}
-                className={cn(
-                  'flex items-center gap-3 p-3 rounded-lg border',
-                  estilo.ativo
-                    ? 'border-primary/30 bg-primary/5'
-                    : 'border-border'
-                )}
-              >
-                <Palette className={cn('w-4 h-4', estilo.ativo ? 'text-primary' : 'text-muted-foreground')} />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{estilo.nome}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {estilo.style_json.descricao_geral?.slice(0, 80)}...
-                  </p>
+            {estilos.map((estilo) => {
+              const isEditando = editandoId === estilo.id
+              return (
+                <div
+                  key={estilo.id}
+                  className={cn(
+                    'rounded-lg border transition-colors',
+                    estilo.ativo
+                      ? 'border-primary/30 bg-primary/5'
+                      : 'border-border'
+                  )}
+                >
+                  {/* Cabeçalho do card */}
+                  <div className="flex items-center gap-3 p-3">
+                    <Palette className={cn('w-4 h-4 shrink-0', estilo.ativo ? 'text-primary' : 'text-muted-foreground')} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{estilo.nome}</p>
+                      {!isEditando && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          {estilo.style_json.descricao_geral?.slice(0, 80)}...
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {estilo.ativo && (
+                        <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full mr-1">
+                          Ativo
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => isEditando ? fecharEdicao() : abrirEdicao(estilo)}
+                        className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                        title="Editar estilo"
+                      >
+                        {isEditando ? <ChevronUp className="w-4 h-4" /> : <Pencil className="w-3.5 h-3.5" />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => excluirEstilo(estilo.id)}
+                        className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                        title="Excluir estilo"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Painel de edição inline */}
+                  {isEditando && (
+                    <div className="border-t border-border px-3 pb-3 pt-3 space-y-3">
+                      <div className="space-y-1.5">
+                        <label className="text-xs text-muted-foreground font-medium">Nome</label>
+                        <input
+                          type="text"
+                          value={editNome}
+                          onChange={(e) => setEditNome(e.target.value)}
+                          className="input-dark text-sm"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs text-muted-foreground font-medium">Descrição geral do estilo</label>
+                        <textarea
+                          value={editDescricao}
+                          onChange={(e) => setEditDescricao(e.target.value)}
+                          rows={4}
+                          className="input-dark text-sm resize-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs text-muted-foreground font-medium">Prompt de imagem</label>
+                        <textarea
+                          value={editPromptImagem}
+                          onChange={(e) => setEditPromptImagem(e.target.value)}
+                          rows={5}
+                          className="input-dark text-sm resize-none"
+                          placeholder="Prompt usado para gerar as imagens de fundo dos slides..."
+                        />
+                      </div>
+
+                      <div className="flex gap-2 justify-end pt-1">
+                        <button
+                          type="button"
+                          onClick={fecharEdicao}
+                          className="btn-secondary text-sm px-3 py-1.5"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => salvarEdicao(estilo)}
+                          disabled={salvando}
+                          className="btn-primary text-sm px-3 py-1.5"
+                        >
+                          {salvando ? (
+                            <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Salvando...</>
+                          ) : (
+                            <><Save className="w-3.5 h-3.5" /> Salvar</>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                {estilo.ativo && (
-                  <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                    Ativo
-                  </span>
-                )}
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}

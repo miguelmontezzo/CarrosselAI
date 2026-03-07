@@ -77,6 +77,53 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// PATCH — Atualiza campos de um estilo existente
+export async function PATCH(req: NextRequest) {
+  try {
+    const { id, nome, style_json } = await req.json()
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID do estilo é obrigatório' }, { status: 400 })
+    }
+
+    const supabase = createServiceClient()
+    const updates: Record<string, unknown> = {}
+    if (nome !== undefined) updates.nome = nome
+    if (style_json !== undefined) updates.style_json = style_json
+
+    const { data, error } = await supabase
+      .from('style_models')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw new Error(error.message)
+
+    return NextResponse.json({ estilo: data })
+  } catch (erro) {
+    const msg = erro instanceof Error ? erro.message : String(erro)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
+}
+
+// DELETE — Remove um estilo
+export async function DELETE(req: NextRequest) {
+  try {
+    const { id } = await req.json()
+    if (!id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 })
+
+    const supabase = createServiceClient()
+    const { error } = await supabase.from('style_models').delete().eq('id', id)
+    if (error) throw new Error(error.message)
+
+    return NextResponse.json({ ok: true })
+  } catch (erro) {
+    const msg = erro instanceof Error ? erro.message : String(erro)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
+}
+
 // GET — Lista todos os estilos salvos
 export async function GET() {
   const supabase = createServiceClient()
